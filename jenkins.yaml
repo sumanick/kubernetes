@@ -1,0 +1,29 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: docker-jenkins
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: docker-jenkins
+    spec:
+      securityContext:
+          runAsUser: 900376
+          runAsGroup: 25
+      containers:
+        - name: docker-jenkins
+          image: jenkins/jenkins:2.176.2 
+          ports:
+            - name: http-port
+              containerPort: 8080
+            - name: jnlp-port
+              containerPort: 50000
+          volumeMounts:
+            - name: jenkins-home
+              mountPath: /var/jenkins_home
+      volumes:
+        - name: jenkins-home
+          hostPath:
+              path: /auto/ccburel/docker-jenkins

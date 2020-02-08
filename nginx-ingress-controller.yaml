@@ -1,0 +1,94 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+   name : nginx-ingress-controller
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+    name: nginx-ingress-controller
+roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: nginx-ingress-controller
+    namespace: default
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: nginx-ingress-controller
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: nginx-ingress-default-backend
+spec:
+    replicas: 1
+    selector:
+       matchLabels:
+           name: nginx-ingress
+    template:
+       metadata:
+           labels:
+              name: nginx-ingress
+       spec:
+         containers:
+         - image: k8s.gcr.io/defaultbackend-amd64:1.5
+           name: nginx-ingress-default-backend
+           ports:
+           - containerPort: 8080
+             name: http
+             protocol: TCP
+           env:
+               - name: POD_NAME
+                 valueFrom:
+                     fieldRef:
+                         fieldPath: metadata.name
+               - name: POD_NAMESPACE
+                 valueFrom:
+                      fieldRef:
+                         fieldPath: metadata.namespace
+         serviceAccount: nginx-ingress-controller
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: nginx-ingress-controller
+spec:
+    replicas: 1
+    selector:
+       matchLabels:
+           name: nginx-ingress
+    template:
+       metadata:
+           labels:
+              name: nginx-ingress
+       spec:
+           containers:
+           - name: nginx-ingress-controller
+             image: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.25.0
+             args:
+                - /nginx-ingress-controller
+                - --default-backend-service=default/nginx-ingress-default-backend
+                - --election-id=ingress-controller-leader
+                - --ingress-class=nginx
+                - --configmap=default/nginx-ingress-controller
+             env:
+               - name: POD_NAME
+                 valueFrom:
+                     fieldRef:
+                         fieldPath: metadata.name
+               - name: POD_NAMESPACE
+                 valueFrom:
+                      fieldRef:
+                         fieldPath: metadata.namespace
+             ports:
+                - name: http
+                  hostPort: 80
+                  containerPort: 80
+                  protocol: TCP
+           serviceAccount: nginx-ingress-controller

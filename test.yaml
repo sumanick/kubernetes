@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myhttpserver
+  labels:
+    day: zero
+    name: httppod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: httppod
+      day: zero
+  template:
+    metadata:
+      labels:
+        day: zero
+        name: httppod
+    spec:
+      containers:
+        - name: myappcont
+          image: agoyalib/trial:tryit
+          imagePullPolicy: IfNotPresent
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: servit
+  labels:
+    day: zeroserv
+spec:
+  type: NodePort
+  selector:
+    day: zero
+    name: httppod
+  ports:
+    - name: mine
+      port: 8080
+      targetPort: 8090
